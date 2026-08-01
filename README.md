@@ -58,6 +58,10 @@ trail runs out. Full writeup, matching rules, and known gaps: [DESIGN.md](DESIGN
 x86_64 + aarch64 Linux, kernel 5.8+. No stack symbolication yet — just
 tid/pid/comm.
 
+## AI Usage
+
+Mosty for debugging and some for code gen.
+
 ## License
 
 MIT or Apache-2.0, pick one.
