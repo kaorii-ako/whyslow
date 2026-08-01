@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use crate::trace::{TraceEvent, TraceFile};
-use crate::ui::{bold_cyan, bold_red, bold_yellow, cyan, dim, green, magenta};
+use crate::ui::{blue, bold_cyan, bold_red, bold_yellow, cyan, dim, green, magenta};
 use whyslow_common::{EVENT_BLOCK_IO, EVENT_FUTEX_WAIT, EVENT_FUTEX_WAKE, EVENT_SCHED_BLOCK, unpack_block_key};
 
 /// Matching tolerance for every "nearest preceding X within a bounded window"
@@ -208,7 +208,7 @@ fn explain_one_stall(block: &TraceEvent, trace: &TraceFile, typed: &Typed, dev_n
         Cause::Futex { wait } => {
             lines.push(format!(
                 "{} {} {} blocked {} on {}",
-                dim(&wall),
+                blue(&wall),
                 dim("\u{2014}"),
                 bold_yellow(&format!("tid {}", block.tid)),
                 bold_red(&format_duration(block.duration_ns)),
@@ -220,7 +220,7 @@ fn explain_one_stall(block: &TraceEvent, trace: &TraceFile, typed: &Typed, dev_n
             let (dev, sector) = unpack_block_key(io.key);
             lines.push(format!(
                 "{} {} {} blocked {} on {}",
-                dim(&wall),
+                blue(&wall),
                 dim("\u{2014}"),
                 bold_yellow(&format!("tid {}", block.tid)),
                 bold_red(&format_duration(block.duration_ns)),
@@ -230,7 +230,7 @@ fn explain_one_stall(block: &TraceEvent, trace: &TraceFile, typed: &Typed, dev_n
         Cause::Unknown => {
             lines.push(format!(
                 "{} {} {} blocked {} {}",
-                dim(&wall),
+                blue(&wall),
                 dim("\u{2014}"),
                 bold_yellow(&format!("tid {}", block.tid)),
                 bold_red(&format_duration(block.duration_ns)),
@@ -320,7 +320,7 @@ pub fn print_chains(chains: &[Chain]) {
     println!();
     for (i, chain) in chains.iter().enumerate() {
         if i > 0 {
-            println!();
+            println!("{}", dim(&"\u{2500}".repeat(60)));
         }
         for line in &chain.lines {
             println!("{line}");

@@ -26,42 +26,49 @@ pub fn bold(s: &str) -> String {
 pub fn dim(s: &str) -> String {
     paint("2", s)
 }
-pub fn cyan(s: &str) -> String {
-    paint("36", s)
-}
 pub fn bold_yellow(s: &str) -> String {
-    paint("1;33", s)
+    paint("1;93", s)
 }
 pub fn bold_red(s: &str) -> String {
-    paint("1;31", s)
+    paint("1;91", s)
 }
 pub fn magenta(s: &str) -> String {
-    paint("35", s)
+    paint("1;95", s)
+}
+pub fn cyan(s: &str) -> String {
+    paint("1;96", s)
 }
 pub fn green(s: &str) -> String {
-    paint("32", s)
+    paint("1;92", s)
 }
 pub fn bold_cyan(s: &str) -> String {
-    paint("1;36", s)
+    paint("1;96", s)
+}
+pub fn blue(s: &str) -> String {
+    paint("1;94", s)
 }
 
-const BANNER: &str = r#"
-           __               __
- _      __/ /_  __  _______/ /___ _      __
-| | /| / / __ \/ / / / ___/ / __ \ | /| / /
-| |/ |/ / / / / /_/ (__  ) / /_/ / |/ |/ /
-|__/|__/_/ /_/\__, /____/_/\____/|__/|__/
-             /____/                        "#;
+/// One bright color per banner line -- rainbow gradient, cycling through the
+/// same 256-color palette `lolcat`-style tools use for this exact effect.
+const BANNER_COLORS: &[&str] = &["1;91", "1;93", "1;92", "1;96", "1;94", "1;95"];
+
+const BANNER_LINES: &[&str] = &[
+    r#"           __               __"#,
+    r#" _      __/ /_  __  _______/ /___ _      __"#,
+    r#"| | /| / / __ \/ / / / ___/ / __ \ | /| / /"#,
+    r#"| |/ |/ / / / / /_/ (__  ) / /_/ / |/ |/ /"#,
+    r#"|__/|__/_/ /_/\__, /____/_/\____/|__/|__/"#,
+    r#"             /____/                        "#,
+];
 
 pub fn print_banner() {
-    if color_enabled() {
-        println!("{}", cyan(BANNER));
-    } else {
-        println!("{BANNER}");
+    println!();
+    for (line, code) in BANNER_LINES.iter().zip(BANNER_COLORS.iter().cycle()) {
+        println!("{}", paint(code, line));
     }
     println!(
         "  {}",
-        dim("debug why a Linux process was slow \u{2014} eBPF causal-chain tracing")
+        bold("debug why a Linux process was slow \u{2014} eBPF causal-chain tracing")
     );
     println!();
 }

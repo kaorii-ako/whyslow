@@ -89,7 +89,7 @@ fn require_root() -> anyhow::Result<()> {
 fn run(command: Vec<String>, trace_out: &std::path::Path, slowest: usize) -> anyhow::Result<()> {
     require_root()?;
     ui::print_banner();
-    println!("{} {}", ui::bold("tracing:"), ui::dim(&command.join(" ")));
+    println!("{} {}", ui::blue("\u{25b8} tracing:"), ui::bold(&command.join(" ")));
 
     let child = child::spawn_stopped(&command)?;
     let pid = child.id();
