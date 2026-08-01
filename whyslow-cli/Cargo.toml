@@ -1,0 +1,36 @@
+[package]
+# Published to crates.io as "whyslow" (the directory stays "whyslow-cli" to
+# distinguish it from its sibling crates) so `cargo install whyslow` works.
+name = "whyslow"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+description = "Debug why a Linux process was slow by correlating sched/futex/block-I/O events into a causal chain"
+repository = "https://github.com/kaorii-ako/whyslow"
+homepage = "https://github.com/kaorii-ako/whyslow"
+readme = "README.md"
+keywords = ["ebpf", "tracing", "performance", "debugging", "linux"]
+categories = ["command-line-utilities", "development-tools::debugging"]
+
+[[bin]]
+name = "whyslow"
+path = "src/main.rs"
+
+[dependencies]
+whyslow-common = { path = "../whyslow-common", version = "0.1.0", features = ["user"] }
+
+anyhow = { workspace = true, default-features = true }
+aya = { workspace = true, default-features = true }
+clap = { workspace = true, features = ["derive"] }
+libc = { workspace = true, default-features = true }
+serde = { workspace = true, default-features = true, features = ["derive"] }
+serde_json = { workspace = true, default-features = true }
+
+[build-dependencies]
+anyhow = { workspace = true, default-features = true }
+aya-build = { workspace = true, default-features = true }
+cargo_metadata = { workspace = true, default-features = true }
+# TODO(https://github.com/rust-lang/cargo/issues/12375): this should be an artifact
+# dependency; see whyslow-ebpf/build.rs for why we cargo-in-cargo instead.
+whyslow-ebpf = { path = "../whyslow-ebpf", version = "0.1.0" }
