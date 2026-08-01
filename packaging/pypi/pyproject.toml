@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whyslow"
+# Keep in sync with the GitHub release this wrapper downloads by default;
+# bump alongside each `vX.Y.Z` tag in the main repo.
+version = "0.1.0"
+description = "Debug why a Linux process was slow via eBPF causal-chain tracing (thin wrapper around the prebuilt whyslow binary)"
+readme = "README.md"
+license = { text = "MIT OR Apache-2.0" }
+requires-python = ">=3.8"
+authors = [{ name = "Tawin Tangsukson", email = "79807@student.amnuaysilpa.ac.th" }]
+keywords = ["ebpf", "tracing", "performance", "debugging", "linux"]
+classifiers = [
+    "Environment :: Console",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: System :: Monitoring",
+]
+
+[project.urls]
+Homepage = "https://github.com/kaorii-ako/whyslow"
+Repository = "https://github.com/kaorii-ako/whyslow"
+
+[project.scripts]
+whyslow = "whyslow:main"

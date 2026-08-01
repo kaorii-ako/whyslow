@@ -58,6 +58,17 @@ jobs:
             whyslow-*.tar.gz.sha256
           if-no-files-found: error
 
+      - name: Build .deb
+        run: |
+          cargo install cargo-deb --locked
+          cargo deb -p whyslow --no-build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whyslow-deb-${{ matrix.target }}
+          path: target/debian/*.deb
+          if-no-files-found: error
+
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -78,3 +89,39 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes
+
+  # Publishes a minimal *unsigned* flat APT repo to GitHub Pages (see
+  # DISTRIBUTION.md: GPG-signing it is a follow-up that needs a keypair only
+  # the repo owner can create). Consumers add it with `[trusted=yes]`.
+  apt-repo:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+    steps:
+      - name: Download .deb artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: debs
+          pattern: whyslow-deb-*
+          merge-multiple: true
+
+      - name: Build flat APT repo
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev
+          mkdir -p _site/apt
+          cp debs/*.deb _site/apt/
+          cd _site/apt
+          dpkg-scanpackages --multiversion . /dev/null > Packages
+          gzip -9c Packages > Packages.gz
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - uses: actions/deploy-pages@v4

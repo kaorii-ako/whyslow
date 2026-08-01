@@ -1,0 +1,32 @@
+# Maintainer: Tawin Tangsukson <79807@student.amnuaysilpa.ac.th>
+#
+# Binary package (pulls the prebuilt GitHub Release build) rather than a
+# from-source package: building whyslow-ebpf needs a nightly toolchain +
+# bpf-linker (+ its own LLVM dev libs), which is a heavy, fragile ask for
+# `makepkg` on an arbitrary user's machine. See ../../DISTRIBUTION.md.
+pkgname=whyslow-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Debug why a Linux process was slow via eBPF causal-chain tracing"
+arch=('x86_64' 'aarch64')
+url="https://github.com/kaorii-ako/whyslow"
+license=('MIT' 'Apache-2.0')
+provides=('whyslow')
+conflicts=('whyslow')
+depends=('glibc')
+
+source_x86_64=("${pkgname}-${pkgver}.tar.gz::https://github.com/kaorii-ako/whyslow/releases/download/v${pkgver}/whyslow-v${pkgver}-x86_64-unknown-linux-gnu.tar.gz")
+sha256sums_x86_64=('9ff66cd8211c014b477088c88636d76f8bb33661cb44910bd402fcf50dc5c7cb')
+
+source_aarch64=("${pkgname}-${pkgver}.tar.gz::https://github.com/kaorii-ako/whyslow/releases/download/v${pkgver}/whyslow-v${pkgver}-aarch64-unknown-linux-gnu.tar.gz")
+sha256sums_aarch64=('a1d714d0afdc5b46b9d5d065dd880403d7044e5bd0a3f90c8cb8c79316236cc7')
+
+package() {
+  local extracted
+  extracted="whyslow-v${pkgver}-${CARCH}-unknown-linux-gnu"
+
+  install -Dm755 "${srcdir}/${extracted}/whyslow" "${pkgdir}/usr/bin/whyslow"
+  install -Dm644 "${srcdir}/${extracted}/LICENSE-MIT" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE-MIT"
+  install -Dm644 "${srcdir}/${extracted}/LICENSE-APACHE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE-APACHE"
+  install -Dm644 "${srcdir}/${extracted}/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+}

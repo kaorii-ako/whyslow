@@ -1,0 +1,41 @@
+name: Publish to crates.io
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Skips (doesn't fail) until CARGO_REGISTRY_TOKEN is added as a repo
+    # secret -- see DISTRIBUTION.md for how to get one. Only the repo owner
+    # can create/add that token, so this can't run until they do.
+    if: ${{ secrets.CARGO_REGISTRY_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nightly (for whyslow-ebpf) + rust-src
+        run: rustup toolchain install nightly --component rust-src
+
+      - name: Install LLVM/clang dev libs (for bpf-linker)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm-dev libpolly-18-dev libzstd-dev
+
+      - name: Install bpf-linker
+        run: cargo install bpf-linker --locked
+
+      # Published in dependency order: whyslow-common has no path deps of its
+      # own; whyslow-ebpf depends on whyslow-common; whyslow (whyslow-cli's
+      # package name) depends on both. A short sleep after each publish gives
+      # crates.io's index a moment to catch up before the next crate's
+      # `path + version` dependency needs to resolve against it.
+      - name: Publish whyslow-common
+        run: cargo publish -p whyslow-common --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+      - run: sleep 30
+      - name: Publish whyslow-ebpf
+        run: cargo publish -p whyslow-ebpf --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+      - run: sleep 30
+      - name: Publish whyslow
+        run: cargo publish -p whyslow --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"

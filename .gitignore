@@ -1,3 +1,9 @@
 /target
 /whyslow.trace.json
 *.trace.json
+
+# Python packaging build artifacts (packaging/pypi/)
+__pycache__/
+*.egg-info/
+/packaging/pypi/build/
+/packaging/pypi/dist/

@@ -25,6 +25,49 @@ Phase 1 (this codebase) targets **x86_64 Linux, kernel 5.8+** (ring buffer
 map support). No stack symbolication yet — threads/processes are identified
 by tid/pid + comm name only.
 
+## Installing
+
+Prebuilt binaries (x86_64, aarch64):
+
+```
+curl -sSf https://raw.githubusercontent.com/kaorii-ako/whyslow/main/install.sh | sh
+```
+
+Or, if it's already installed to a place your shell can't find it:
+
+```
+curl -sSf https://raw.githubusercontent.com/kaorii-ako/whyslow/main/install.sh | WHYSLOW_INSTALL_DIR=/usr/local/bin sh
+```
+
+**Homebrew** (Linux only):
+```
+brew install kaorii-ako/whyslow/whyslow
+```
+
+**APT** (unsigned repo — see [DISTRIBUTION.md](DISTRIBUTION.md) for why, and
+the plan to sign it):
+```
+echo "deb [trusted=yes] https://kaorii-ako.github.io/whyslow/apt ./" \
+  | sudo tee /etc/apt/sources.list.d/whyslow.list
+sudo apt update && sudo apt install whyslow
+```
+
+**Cargo** (needs a nightly toolchain + `bpf-linker` on *your* machine too —
+see "Building" below, this is a real cost of `cargo install` for an
+eBPF-based tool, not a bug):
+```
+cargo install whyslow
+```
+
+**Arch (AUR)**: `whyslow-bin` — see `packaging/aur/PKGBUILD`.
+
+**pip**: `pip install whyslow` — thin wrapper that fetches the same prebuilt
+binary; see `packaging/pypi/`.
+
+Whichever way you install it, **whyslow still needs root or CAP_BPF to run**
+(see above) — the installer/package managers just get the binary onto your
+machine, they can't grant that at install time.
+
 ## Architecture
 
 ```
