@@ -6,6 +6,7 @@
 use std::collections::HashMap;
 
 use crate::trace::{TraceEvent, TraceFile};
+use crate::ui::{bold_cyan, bold_red, bold_yellow, cyan, dim, green, magenta};
 use whyslow_common::{EVENT_BLOCK_IO, EVENT_FUTEX_WAIT, EVENT_FUTEX_WAKE, EVENT_SCHED_BLOCK, unpack_block_key};
 
 /// Matching tolerance for every "nearest preceding X within a bounded window"
@@ -206,27 +207,34 @@ fn explain_one_stall(block: &TraceEvent, trace: &TraceFile, typed: &Typed, dev_n
     match &headline_cause {
         Cause::Futex { wait } => {
             lines.push(format!(
-                "{wall} \u{2014} tid {} blocked {} on futex {:#x}",
-                block.tid,
-                format_duration(block.duration_ns),
-                wait.key
+                "{} {} {} blocked {} on {}",
+                dim(&wall),
+                dim("\u{2014}"),
+                bold_yellow(&format!("tid {}", block.tid)),
+                bold_red(&format_duration(block.duration_ns)),
+                magenta(&format!("futex {:#x}", wait.key))
             ));
             walk_from_futex_wait(wait, typed, dev_names, 1, &mut lines);
         }
         Cause::BlockIo { io } => {
             let (dev, sector) = unpack_block_key(io.key);
             lines.push(format!(
-                "{wall} \u{2014} tid {} blocked {} on block I/O (dev {}, sector {sector})",
-                block.tid,
-                format_duration(block.duration_ns),
-                dev_names.name(dev)
+                "{} {} {} blocked {} on {}",
+                dim(&wall),
+                dim("\u{2014}"),
+                bold_yellow(&format!("tid {}", block.tid)),
+                bold_red(&format_duration(block.duration_ns)),
+                cyan(&format!("block I/O (dev {}, sector {sector})", dev_names.name(dev)))
             ));
         }
         Cause::Unknown => {
             lines.push(format!(
-                "{wall} \u{2014} tid {} blocked {} (no correlated cause found)",
-                block.tid,
-                format_duration(block.duration_ns)
+                "{} {} {} blocked {} {}",
+                dim(&wall),
+                dim("\u{2014}"),
+                bold_yellow(&format!("tid {}", block.tid)),
+                bold_red(&format_duration(block.duration_ns)),
+                dim("(no correlated cause found)")
             ));
         }
     }
@@ -244,7 +252,12 @@ fn walk_from_futex_wait(
     let Some(wake) = nearest_preceding(&typed.futex_wake, wait.timestamp_ns, |e| e.key == wait.key) else {
         return; // no wake in-window found; chain ends, unexplained.
     };
-    lines.push(format!(" \u{2190} woken by tid {}", wake.tid));
+    lines.push(format!(
+        " {} {} {}",
+        dim("\u{2190}"),
+        green("woken by"),
+        bold_yellow(&format!("tid {}", wake.tid))
+    ));
 
     if depth >= MAX_CHAIN_DEPTH {
         return;
@@ -257,20 +270,22 @@ fn walk_from_futex_wait(
     match classify_prior_cause(wake.tid, wake_start_ts, typed) {
         Cause::Futex { wait: next_wait } => {
             lines.push(format!(
-                " \u{2190} tid {} blocked {} on futex {:#x}",
-                wake.tid,
-                format_duration(next_wait.duration_ns),
-                next_wait.key
+                " {} {} blocked {} on {}",
+                dim("\u{2190}"),
+                bold_yellow(&format!("tid {}", wake.tid)),
+                bold_red(&format_duration(next_wait.duration_ns)),
+                magenta(&format!("futex {:#x}", next_wait.key))
             ));
             walk_from_futex_wait(next_wait, typed, dev_names, depth + 1, lines);
         }
         Cause::BlockIo { io } => {
             let (dev, sector) = unpack_block_key(io.key);
             lines.push(format!(
-                " \u{2190} tid {} blocked {} on block I/O (dev {}, sector {sector})",
-                wake.tid,
-                format_duration(io.duration_ns),
-                dev_names.name(dev)
+                " {} {} blocked {} on {}",
+                dim("\u{2190}"),
+                bold_yellow(&format!("tid {}", wake.tid)),
+                bold_red(&format_duration(io.duration_ns)),
+                cyan(&format!("block I/O (dev {}, sector {sector})", dev_names.name(dev)))
             ));
         }
         Cause::Unknown => {
@@ -301,6 +316,8 @@ pub fn print_chains(chains: &[Chain]) {
         println!("whyslow: no blocked intervals recorded (process may not have stalled, or trace is empty)");
         return;
     }
+    println!("{}", bold_cyan(&format!("\u{25b6} {} slowest stall(s):", chains.len())));
+    println!();
     for (i, chain) in chains.iter().enumerate() {
         if i > 0 {
             println!();

@@ -2,6 +2,7 @@ mod bpf;
 mod causal;
 mod child;
 mod trace;
+mod ui;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -87,6 +88,8 @@ fn require_root() -> anyhow::Result<()> {
 
 fn run(command: Vec<String>, trace_out: &std::path::Path, slowest: usize) -> anyhow::Result<()> {
     require_root()?;
+    ui::print_banner();
+    println!("{} {}", ui::bold("tracing:"), ui::dim(&command.join(" ")));
 
     let child = child::spawn_stopped(&command)?;
     let pid = child.id();
@@ -127,6 +130,7 @@ fn attach(
     duration_secs: Option<u64>,
 ) -> anyhow::Result<()> {
     require_root()?;
+    ui::print_banner();
 
     if unsafe { libc::kill(pid as libc::pid_t, 0) } != 0 {
         return Err(anyhow!("no such process: {pid}"));
