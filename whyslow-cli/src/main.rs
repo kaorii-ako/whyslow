@@ -57,7 +57,17 @@ enum Command {
     },
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() {
+    if let Err(err) = try_main() {
+        eprintln!("{} {err}", ui::bold_red("error:"));
+        for cause in err.chain().skip(1) {
+            eprintln!("  {} {cause}", ui::dim("caused by:"));
+        }
+        std::process::exit(1);
+    }
+}
+
+fn try_main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Command::Run {
