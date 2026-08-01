@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*.*.*"
+  # Lets a maintainer re-run publishing later (e.g. after adding the token)
+  # without needing to cut a new tag just to retrigger it.
+  workflow_dispatch:
 
 jobs:
   publish:
