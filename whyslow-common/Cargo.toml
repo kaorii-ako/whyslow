@@ -1,6 +1,6 @@
 [package]
 name = "whyslow-common"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 description = "Shared event schema for whyslow's eBPF and userspace sides"

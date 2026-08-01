@@ -2,7 +2,7 @@
 # Published to crates.io as "whyslow" (the directory stays "whyslow-cli" to
 # distinguish it from its sibling crates) so `cargo install whyslow` works.
 name = "whyslow"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 
@@ -18,7 +18,7 @@ name = "whyslow"
 path = "src/main.rs"
 
 [dependencies]
-whyslow-common = { path = "../whyslow-common", version = "0.1.0", features = ["user"] }
+whyslow-common = { path = "../whyslow-common", version = "0.1.1", features = ["user"] }
 
 anyhow = { workspace = true, default-features = true }
 aya = { workspace = true, default-features = true }
@@ -33,7 +33,7 @@ aya-build = { workspace = true, default-features = true }
 cargo_metadata = { workspace = true, default-features = true }
 # TODO(https://github.com/rust-lang/cargo/issues/12375): this should be an artifact
 # dependency; see whyslow-ebpf/build.rs for why we cargo-in-cargo instead.
-whyslow-ebpf = { path = "../whyslow-ebpf", version = "0.1.0" }
+whyslow-ebpf = { path = "../whyslow-ebpf", version = "0.1.1" }
 
 [package.metadata.deb]
 name = "whyslow"
