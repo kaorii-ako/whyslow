@@ -8,34 +8,61 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Skips (doesn't fail) until CARGO_REGISTRY_TOKEN is added as a repo
-    # secret -- see DISTRIBUTION.md for how to get one. Only the repo owner
-    # can create/add that token, so this can't run until they do.
-    if: ${{ secrets.CARGO_REGISTRY_TOKEN != '' }}
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
+      # GitHub Actions doesn't reliably support referencing `secrets` in a
+      # job/step `if:` condition (an earlier version of this workflow tried
+      # that at the job level and GitHub rejected the whole workflow file).
+      # Checking at runtime instead, gating every later step on this step's
+      # output -- skips (doesn't fail) until CARGO_REGISTRY_TOKEN is added as
+      # a repo secret. See DISTRIBUTION.md for how to get one; only the repo
+      # owner can create/add that token.
+      - name: Check CARGO_REGISTRY_TOKEN is configured
+        id: check
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo "CARGO_REGISTRY_TOKEN not set -- skipping crates.io publish. See DISTRIBUTION.md."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
 
       - name: Install nightly (for whyslow-ebpf) + rust-src
+        if: steps.check.outputs.ready == 'true'
         run: rustup toolchain install nightly --component rust-src
 
       - name: Install LLVM/clang dev libs (for bpf-linker)
+        if: steps.check.outputs.ready == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm-dev libpolly-18-dev libzstd-dev
 
       - name: Install bpf-linker
+        if: steps.check.outputs.ready == 'true'
         run: cargo install bpf-linker --locked
 
       # Published in dependency order: whyslow-common has no path deps of its
       # own; whyslow-ebpf depends on whyslow-common; whyslow (whyslow-cli's
       # package name) depends on both. A short sleep after each publish gives
       # crates.io's index a moment to catch up before the next crate's
-      # `path + version` dependency needs to resolve against it.
+      # `path + version` dependency needs to resolve against it. `cargo
+      # publish` picks up CARGO_REGISTRY_TOKEN from the environment.
       - name: Publish whyslow-common
-        run: cargo publish -p whyslow-common --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
-      - run: sleep 30
+        if: steps.check.outputs.ready == 'true'
+        run: cargo publish -p whyslow-common
+      - name: Wait for crates.io index
+        if: steps.check.outputs.ready == 'true'
+        run: sleep 30
       - name: Publish whyslow-ebpf
-        run: cargo publish -p whyslow-ebpf --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
-      - run: sleep 30
+        if: steps.check.outputs.ready == 'true'
+        run: cargo publish -p whyslow-ebpf
+      - name: Wait for crates.io index
+        if: steps.check.outputs.ready == 'true'
+        run: sleep 30
       - name: Publish whyslow
-        run: cargo publish -p whyslow --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+        if: steps.check.outputs.ready == 'true'
+        run: cargo publish -p whyslow
