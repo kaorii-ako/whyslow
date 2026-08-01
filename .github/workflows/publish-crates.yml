@@ -4,8 +4,9 @@ on:
   push:
     tags:
       - "v*.*.*"
-  # Lets a maintainer re-run publishing later (e.g. after adding the token)
-  # without needing to cut a new tag just to retrigger it.
+  # Lets a maintainer re-run publishing later (e.g. after adding the token,
+  # or to pick up a fix that only touches an unpublished crate) without
+  # needing to cut a new tag just to retrigger it.
   workflow_dispatch:
 
 jobs:
@@ -50,22 +51,52 @@ jobs:
 
       # Published in dependency order: whyslow-common has no path deps of its
       # own; whyslow-ebpf depends on whyslow-common; whyslow (whyslow-cli's
-      # package name) depends on both. A short sleep after each publish gives
-      # crates.io's index a moment to catch up before the next crate's
-      # `path + version` dependency needs to resolve against it. `cargo
-      # publish` picks up CARGO_REGISTRY_TOKEN from the environment.
+      # package name) depends on both. Each step is idempotent -- skips if
+      # that exact version is already live on crates.io -- so re-running this
+      # workflow (e.g. after fixing a bug in a crate published later in the
+      # chain) doesn't fail trying to republish an already-published one.
       - name: Publish whyslow-common
         if: steps.check.outputs.ready == 'true'
-        run: cargo publish -p whyslow-common
-      - name: Wait for crates.io index
-        if: steps.check.outputs.ready == 'true'
-        run: sleep 30
+        working-directory: whyslow-common
+        run: |
+          set -euo pipefail
+          version="$(grep -m1 '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')"
+          if curl -sf "https://crates.io/api/v1/crates/whyslow-common/$version" > /dev/null; then
+            echo "whyslow-common $version already published, skipping"
+          else
+            cargo publish
+            sleep 30 # give crates.io's index a moment before the next crate depends on it
+          fi
+
+      # Run from *inside* whyslow-ebpf/, not the workspace root: cargo's
+      # config-file discovery (for whyslow-ebpf/.cargo/config.toml, which
+      # sets target=bpfel-unknown-none for `cargo publish`'s own standalone
+      # verify build) walks up from the invoking process's CWD, not from the
+      # package being published -- `-p whyslow-ebpf` alone from the root
+      # finds the *workspace* root's .cargo/config.toml instead (which only
+      # sets the sudo runner), so the verify build silently targets the host
+      # and fails to link a #![no_main] binary as a normal executable.
       - name: Publish whyslow-ebpf
         if: steps.check.outputs.ready == 'true'
-        run: cargo publish -p whyslow-ebpf
-      - name: Wait for crates.io index
-        if: steps.check.outputs.ready == 'true'
-        run: sleep 30
+        working-directory: whyslow-ebpf
+        run: |
+          set -euo pipefail
+          version="$(grep -m1 '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')"
+          if curl -sf "https://crates.io/api/v1/crates/whyslow-ebpf/$version" > /dev/null; then
+            echo "whyslow-ebpf $version already published, skipping"
+          else
+            cargo publish
+            sleep 30
+          fi
+
       - name: Publish whyslow
         if: steps.check.outputs.ready == 'true'
-        run: cargo publish -p whyslow
+        working-directory: whyslow-cli
+        run: |
+          set -euo pipefail
+          version="$(grep -m1 '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')"
+          if curl -sf "https://crates.io/api/v1/crates/whyslow/$version" > /dev/null; then
+            echo "whyslow $version already published, skipping"
+          else
+            cargo publish
+          fi
