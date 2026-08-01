@@ -21,3 +21,16 @@ which = { workspace = true }
 [[bin]]
 name = "whyslow-ebpf"
 path = "src/main.rs"
+
+# Required for a #![no_std] #![no_main] target built with `-Z build-std=core`
+# (see .cargo/config.toml): core has no unwinding runtime, so the default
+# panic="unwind" strategy can't be satisfied. Our normal build path (via
+# whyslow-cli's build.rs -> aya-build) happens to pass this implicitly, so it
+# was never missed there -- but `cargo publish`'s own standalone verify build
+# of this crate (and a real end-user's `cargo install whyslow`, whose build.rs
+# does the same kind of standalone build) doesn't get that for free, and fails
+# with "unwinding panics are not supported without std" without it.
+[profile.dev]
+panic = "abort"
+[profile.release]
+panic = "abort"
