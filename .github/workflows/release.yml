@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+    runs-on: ${{ matrix.os }}
+    # aarch64 hosted runners are newer / not available on every account tier;
+    # don't let that block the x86_64 release if so.
+    continue-on-error: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nightly (for whyslow-ebpf) + rust-src
+        run: rustup toolchain install nightly --component rust-src
+
+      - name: Install LLVM/clang dev libs (for bpf-linker)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm-dev libpolly-18-dev libzstd-dev
+
+      - name: Install bpf-linker
+        run: cargo install bpf-linker --locked
+
+      - name: Build release binary
+        run: cargo build --release -p whyslow
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
+          PKG="whyslow-${VERSION}-${{ matrix.target }}"
+          mkdir -p "$PKG"
+          cp target/release/whyslow "$PKG"/
+          cp README.md LICENSE-MIT LICENSE-APACHE "$PKG"/
+          tar czf "${PKG}.tar.gz" "$PKG"
+          sha256sum "${PKG}.tar.gz" > "${PKG}.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whyslow-${{ matrix.target }}
+          path: |
+            whyslow-*.tar.gz
+            whyslow-*.tar.gz.sha256
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes

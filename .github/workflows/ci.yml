@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nightly (for whyslow-ebpf) + rust-src
+        run: rustup toolchain install nightly --component rust-src
+
+      - name: Install LLVM/clang dev libs (for bpf-linker)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm-dev libpolly-18-dev libzstd-dev
+
+      - name: Install bpf-linker
+        run: cargo install bpf-linker --locked
+
+      - name: Build workspace
+        run: cargo build --workspace --verbose
+
+      - name: Run integration test (needs CAP_BPF; GH runners have passwordless sudo)
+        run: cargo test -p whyslow -- --nocapture
