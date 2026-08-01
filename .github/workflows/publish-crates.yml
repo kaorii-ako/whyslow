@@ -61,7 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           version="$(grep -m1 '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')"
-          if curl -sf "https://crates.io/api/v1/crates/whyslow-common/$version" > /dev/null; then
+          if curl -sf -A "whyslow-publish-check/1.0" "https://crates.io/api/v1/crates/whyslow-common/$version" > /dev/null; then
             echo "whyslow-common $version already published, skipping"
           else
             cargo publish
@@ -82,7 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           version="$(grep -m1 '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')"
-          if curl -sf "https://crates.io/api/v1/crates/whyslow-ebpf/$version" > /dev/null; then
+          if curl -sf -A "whyslow-publish-check/1.0" "https://crates.io/api/v1/crates/whyslow-ebpf/$version" > /dev/null; then
             echo "whyslow-ebpf $version already published, skipping"
           else
             cargo publish
@@ -95,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           version="$(grep -m1 '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')"
-          if curl -sf "https://crates.io/api/v1/crates/whyslow/$version" > /dev/null; then
+          if curl -sf -A "whyslow-publish-check/1.0" "https://crates.io/api/v1/crates/whyslow/$version" > /dev/null; then
             echo "whyslow $version already published, skipping"
           else
             cargo publish
