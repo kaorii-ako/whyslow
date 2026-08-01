@@ -52,11 +52,13 @@ echo "deb [trusted=yes] https://kaorii-ako.github.io/whyslow/apt ./" \
 sudo apt update && sudo apt install whyslow
 ```
 
-**Cargo** (needs a nightly toolchain + `bpf-linker` on *your* machine too —
-see "Building" below, this is a real cost of `cargo install` for an
-eBPF-based tool, not a bug):
+**Cargo** — `cargo install whyslow` does *not* work (registry installs can't
+see `whyslow-ebpf` as a workspace sibling, which the build needs — see
+[DISTRIBUTION.md](DISTRIBUTION.md)). Install from git instead, which does
+work, and still needs a nightly toolchain + `bpf-linker` on *your* machine
+too (see "Building" below — a real cost of building an eBPF tool, not a bug):
 ```
-cargo install whyslow
+cargo install --git https://github.com/kaorii-ako/whyslow whyslow
 ```
 
 **Arch (AUR)**: `whyslow-bin` — see `packaging/aur/PKGBUILD`.

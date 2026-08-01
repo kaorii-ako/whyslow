@@ -1,6 +1,16 @@
 [package]
-# Published to crates.io as "whyslow" (the directory stays "whyslow-cli" to
-# distinguish it from its sibling crates) so `cargo install whyslow` works.
+# NOT published to crates.io -- see DISTRIBUTION.md "crates.io" section.
+# build.rs finds whyslow-ebpf via `cargo_metadata` workspace-member lookup,
+# which only resolves when whyslow-ebpf is an actual workspace sibling (true
+# when built from a git clone) and fails with "whyslow-ebpf package not
+# found" when whyslow-ebpf is instead a plain registry dependency (true for
+# a real `cargo install whyslow` from the registry). Confirmed by actually
+# trying to publish and hitting exactly that failure, not a hypothetical.
+# `cargo install --git https://github.com/kaorii-ako/whyslow whyslow` works
+# fine (git installs preserve the workspace) and is the real equivalent.
+# The package name stays "whyslow" (directory "whyslow-cli") for when/if a
+# future build.rs rewrite fixes this and publishing becomes safe to retry.
+publish = false
 name = "whyslow"
 version = "0.1.1"
 edition.workspace = true

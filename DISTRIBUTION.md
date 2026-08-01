@@ -3,32 +3,65 @@
 Status of each channel from the original task brief, what's automated vs.
 what needs a one-time manual step only the repo/account owner can do.
 
-## 1. crates.io — `cargo install whyslow`
+## 1. crates.io
 
-**Automated:** `.github/workflows/publish-crates.yml` publishes
-`whyslow-common` → `whyslow-ebpf` → `whyslow` (in dependency order, with a
-30s pause between each for crates.io's index to catch up) on every `vX.Y.Z`
-tag push. All three crates already have the metadata crates.io requires
-(description, license, repository, keywords/categories), and the path
-dependencies between them carry explicit versions so `cargo publish` can
-resolve them.
+**Status: partially live, and the "cargo install whyslow" headline goal
+turned out not to work — found out by actually trying it, not by reasoning
+about it in advance.**
 
-**Needs you:**
-1. Create a crates.io account (via GitHub OAuth is fastest) at
-   https://crates.io.
-2. Generate an API token: https://crates.io/settings/tokens.
-3. Add it as a repo secret: `gh secret set CARGO_REGISTRY_TOKEN` (or
-   Settings → Secrets and variables → Actions on GitHub.com).
-4. The workflow silently no-ops on every tag push until that secret exists,
-   then runs automatically on the next tag.
+`whyslow-common` ([crates.io](https://crates.io/crates/whyslow-common)) and
+`whyslow-ebpf` ([crates.io](https://crates.io/crates/whyslow-ebpf)) *are*
+published, real, live, both at 0.1.1. `.github/workflows/publish-crates.yml`
+publishes them automatically on every `vX.Y.Z` tag push (or manually via
+`gh workflow run "Publish to crates.io"`), each step idempotent (skips if
+that version's already up).
 
-**Real, unavoidable limitation:** `cargo install whyslow` on someone else's
-machine still needs *them* to have a nightly toolchain + `rust-src` +
-`bpf-linker` (+ its LLVM dev libs) installed locally, because
-`whyslow`'s `build.rs` compiles `whyslow-ebpf` from source at install time.
-This isn't a bug or something we can paper over — it's inherent to how
-`aya`-based tools currently distribute via cargo. Channels 2-6 below exist
-specifically so end users don't have to hit this.
+**`whyslow` (the CLI) is deliberately not published — `publish = false` in
+its Cargo.toml — because `cargo install whyslow` from the registry doesn't
+work with the current build.rs, confirmed by actually attempting the publish
+and hitting the real failure:**
+
+```
+error: failed to run custom build command for `whyslow v0.1.1`
+Error: whyslow-ebpf package not found
+```
+
+The root cause: `whyslow`'s `build.rs` (the standard `aya-template` pattern)
+finds `whyslow-ebpf` via `cargo_metadata::MetadataCommand::new().no_deps()`
+— a *workspace-member* lookup. That only resolves `whyslow-ebpf` when it's
+an actual sibling in the same workspace, which is true when the whole repo
+is built from a git clone (our normal build path, and every CI/Release build
+here), but **not** true when `whyslow-ebpf` is instead a plain registry
+dependency, as it necessarily is during a real `cargo install whyslow` from
+crates.io. This isn't hypothetical — I hit it by actually running the
+publish and reading the resulting error, then verified the same design
+works fine via `cargo install --git`, isolating the cause to exactly this.
+
+**The real working equivalent:**
+```
+cargo install --git https://github.com/kaorii-ako/whyslow whyslow
+```
+This works today (verified end-to-end: installs, runs, produces the correct
+`explain` output) because a git install clones the actual repo, preserving
+the workspace `whyslow-ebpf` needs to be found in.
+
+Either way — registry or git — installing this way still needs *your*
+machine to have a nightly toolchain + `rust-src` + `bpf-linker` (+ its LLVM
+dev libs), because the build compiles `whyslow-ebpf` from source. That part
+really is inherent to how `aya`-based tools build, not fixable here. Channels
+2-6 below exist specifically so end users don't have to hit either issue.
+
+**Needs you** (for the two crates that *are* publishable): a crates.io
+account + `CARGO_REGISTRY_TOKEN` secret, already done as of this writing.
+
+**Follow-up, not done here:** rewriting `whyslow`'s `build.rs` to not depend
+on workspace-member resolution (e.g. vendoring `whyslow-ebpf`'s source into
+`OUT_DIR` and building it there directly, or using `cargo_metadata` without
+`.no_deps()` and resolving the dependency's actual manifest path instead of
+its workspace membership) would fix this properly and let `whyslow` publish
+too. Left for later since it's a real (if bounded) rewrite, not a
+config tweak — flagging it here rather than either silently shipping a
+broken package or quietly giving up on the channel.
 
 ## 2. GitHub Releases + install script
 
@@ -125,7 +158,7 @@ loudly with a clear message on non-Linux, since whyslow itself is Linux-only).
 
 | Channel | Automated | Needs from you |
 |---|---|---|
-| crates.io | publish workflow ready | crates.io account + `CARGO_REGISTRY_TOKEN` secret |
+| crates.io | `whyslow-common`/`whyslow-ebpf` live; `whyslow` CLI intentionally unpublished (see above) | done for the two publishable crates |
 | GitHub Releases | fully automated, validated live | nothing |
 | Homebrew | tap repo live, real checksums | nothing to start; future auto-update needs a tap-repo PAT |
 | APT (unsigned) | fully automated, validated live | nothing to start; GPG signing needs a keypair only you can create |

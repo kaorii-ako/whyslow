@@ -86,17 +86,12 @@ jobs:
             echo "whyslow-ebpf $version already published, skipping"
           else
             cargo publish
-            sleep 30
           fi
 
-      - name: Publish whyslow
-        if: steps.check.outputs.ready == 'true'
-        working-directory: whyslow-cli
-        run: |
-          set -euo pipefail
-          version="$(grep -m1 '^version' Cargo.toml | sed -E 's/version = "(.*)"/\1/')"
-          if curl -sf -A "whyslow-publish-check/1.0" "https://crates.io/api/v1/crates/whyslow/$version" > /dev/null; then
-            echo "whyslow $version already published, skipping"
-          else
-            cargo publish
-          fi
+      # `whyslow` itself (the CLI, package name "whyslow", `publish = false`
+      # in its Cargo.toml) is deliberately NOT published: its build.rs finds
+      # whyslow-ebpf via a workspace-member lookup that only resolves when
+      # whyslow-ebpf is an actual git-clone sibling, not a plain registry
+      # dependency -- confirmed by actually trying and hitting exactly that
+      # failure. `cargo install --git https://github.com/kaorii-ako/whyslow
+      # whyslow` is the real working equivalent (see DISTRIBUTION.md).
